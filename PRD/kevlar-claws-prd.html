@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRD: The Kevlar-Claws Refactor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 40px;
+        }
+        .container {
+            max-width: 850px;
+            margin: auto;
+            background: #ffffff;
+            padding: 40px;
+            border-top: 8px solid #c0392b;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: #c0392b; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; border-left: 5px solid #2980b9; padding-left: 15px; }
+        h3 { color: #34495e; margin-top: 25px; }
+        code { background: #f0f0f0; padding: 2px 5px; border-radius: 3px; font-family: 'Courier New', Courier, monospace; }
+        pre { background: #2d3436; color: #dfe6e9; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        .metadata { background: #fdf2f2; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb; color: #721c24; margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PRD: The "Zero-Trust" Refactor (Project: Kevlar-Claws)</h1>
+        
+        <div class="metadata">
+            <strong>Status:</strong> Categorically Frustrated / Draft for Review<br>
+            <strong>Priority:</strong> P0 (Unless you like accidental <code>rm -rf /</code>)<br>
+            <strong>Author:</strong> Senior QA (Your Local Cynic)
+        </div>
+
+        <h2>1. Executive Summary</h2>
+        <p>The goal is to transition <code>cheetahclaws</code> from a "Heuristic-Based" agent (guessing via string matching) to a "Verifiable" agent (confirming via Abstract Syntax Trees and State Checksums). We are moving the intelligence out of the LLM prompt and into the system's guardrails.</p>
+
+        <h2>2. The Problem Statement</h2>
+        <p>The current implementation suffers from <strong>Semantic Drift</strong>:</p>
+        <ul>
+            <li><strong>The String Matching Bug:</strong> Simple edits break file structure.</li>
+            <li><strong>The Blind Trust Bug:</strong> The agent assumes the file on disk matches memory.</li>
+            <li><strong>The "Shadow" Commit:</strong> AI changes are untraceable and often indistinguishable from human errors.</li>
+        </ul>
+
+        <h2>3. Functional Requirements</h2>
+        <h3>FR-01: Deterministic State Verification</h3>
+        <table>
+            <tr><th>Feature</th><th>Requirement</th><th>Implementation</th></tr>
+            <tr><td>Snapshotting</td><td>Compute SHA-256 hash before context injection.</td><td><code>state_manager.py</code></td></tr>
+            <tr><td>Pre-Flight Check</td><td>Re-hash disk before execution.</td><td>Middleware in <code>tools/edit.py</code></td></tr>
+            <tr><td>Desync Action</td><td><strong>Abort</strong> on hash mismatch.</td><td><code>ERROR_STATE_DESYNC</code></td></tr>
+        </table>
+
+        <h3>FR-02: AST-Based Code Mutations</h3>
+        <p>We are banning the use of <code>re.sub</code> or <code>.replace()</code>. The LLM will now interact with the code structure, not the text.</p>
+        <ul>
+            <li><strong>LibCST Integration:</strong> Mutations must be applied to specific Syntax Nodes.</li>
+            <li><strong>Validation:</strong> If the CST does not compile, the tool reports failure immediately.</li>
+        </ul>
+
+        <h3>FR-03: Tiered Execution Permissions</h3>
+        <ul>
+            <li><strong>Tier 1 (Read-Only):</strong> <code>ls</code>, <code>grep</code>, <code>cat</code>. (Auto-allowed)</li>
+            <li><strong>Tier 2 (Surgical):</strong> <code>Edit</code> (AST only), <code>Linter</code>. (Auto-revert on fail)</li>
+            <li><strong>Tier 3 (Destructive):</strong> <code>Bash</code>, <code>Git Commit</code>, <code>RM</code>. (Requires 95%+ Confidence Score or Human-in-the-Loop)</li>
+        </ul>
+
+        <h2>4. Technical Specifications</h2>
+        <h3>Directory Structure</h3>
+        <pre>
+cheetahclaws/
+├── core/
+│   ├── engine.py           # The LLM loop
+│   └── state_manager.py    # NEW: SHA-256 Registry
+├── tools/
+│   ├── base.py
+│   ├── ast_editor.py       # NEW: LibCST implementation
+│   └── shell_guard.py      # NEW: Restricted subprocess wrapper
+└── audit/
+    ├── recorder.py         # NEW: SQLite logger for every prompt/response
+    └── git_signer.py       # NEW: Enforces commit trailers</pre>
+
+        <h3>Metadata Commit Policy</h3>
+        <p>Every Git operation performed by the agent <strong>must</strong> include the following trailers:</p>
+        <pre>Co-authored-by: CheetahClaws &lt;agent@local&gt;
+Agent-Session-ID: &lt;uuid&gt;
+Agent-Verification: AST-Passed / Linter-Passed</pre>
+
+        <h2>5. Success Metrics (QA KPI)</h2>
+        <ol>
+            <li><strong>Zero "Ghost Edits":</strong> 0% overwrites of changed files.</li>
+            <li><strong>Zero Syntax Regressions:</strong> 100% of AI-generated edits pass <code>flake8</code>/<code>mypy</code>.</li>
+            <li><strong>Traceability:</strong> 100% of AI-generated commits identifiable.</li>
+        </ol>
+
+        <h2>6. The "Angry QA" Anti-Requirements</h2>
+        <ul>
+            <li><strong>No "Buddy" Pets:</strong> We are building a compiler-aware scalpel, not a cat.</li>
+            <li><strong>No Stealth Mode:</strong> If the agent is used to "hide" AI code, self-destruct.</li>
+            <li><strong>No Unbounded Context:</strong> Files &gt;2000 lines require AST indexing.</li>
+        </ul>
+    </div>
+</body>
+</html>

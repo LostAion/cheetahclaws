@@ -1,27 +1,42 @@
-# Core dependencies (must match pyproject.toml [project.dependencies])
-anthropic>=0.40.0
-openai>=1.30.0
-httpx>=0.27.0
-rich>=13.0.0
-pyte>=0.8.0            # terminal emulator for !claude / !python bridge rendering
+# Core dependencies (must match pyproject.toml [project.dependencies])
+anthropic>=0.40.0
+openai>=1.30.0
+httpx>=0.27.0
+rich>=13.0.0
+pyte>=0.8.0            # terminal emulator for !claude / !python bridge rendering
+
+# Optional — install to enable typing-time slash-command autosuggest.
+# Also available as an extra: `pip install cheetahclaws[autosuggest]`.
+prompt_toolkit>=3.0.43
+
+# ── Optional dependencies ────────────────────────────────────────────────
+# Voice input:  pip install cheetahclaws[voice]
+#   sounddevice
+
+# Vision input: pip install cheetahclaws[vision]
+#   Pillow
+
+# ── Voice STT backends (choose one) ─────────────────────────────────────
+#   pip install faster-whisper     # local Whisper, fastest  (recommended)
+#   pip install openai-whisper     # local Whisper, original
+#   # or set OPENAI_API_KEY to use the OpenAI Whisper cloud API
+#
+# numpy is needed by the local Whisper backends and the arecord RMS detector:
+#   pip install numpy
+#
+# Model size can be overridden: export NANO_CLAUDE_WHISPER_MODEL=small
+libcst>=1.0.0
 
-# Optional — install to enable typing-time slash-command autosuggest.
-# Also available as an extra: `pip install cheetahclaws[autosuggest]`.
-prompt_toolkit>=3.0.43
+# ── Kevlar-Claws v2.0 dependencies ──────────────────────────────────────
+# Tree-sitter (multi-language AST skeleton engine)
+tree-sitter>=0.23.0
+tree-sitter-python>=0.23.0
+tree-sitter-javascript>=0.23.0
+tree-sitter-typescript>=0.23.0
+tree-sitter-html>=0.23.0
 
-# ── Optional dependencies ────────────────────────────────────────────────
-# Voice input:  pip install cheetahclaws[voice]
-#   sounddevice
+# ChromaDB (local vector RAG cache)
+chromadb>=1.0.0
 
-# Vision input: pip install cheetahclaws[vision]
-#   Pillow
-
-# ── Voice STT backends (choose one) ─────────────────────────────────────
-#   pip install faster-whisper     # local Whisper, fastest  (recommended)
-#   pip install openai-whisper     # local Whisper, original
-#   # or set OPENAI_API_KEY to use the OpenAI Whisper cloud API
-#
-# numpy is needed by the local Whisper backends and the arecord RMS detector:
-#   pip install numpy
-#
-# Model size can be overridden: export NANO_CLAUDE_WHISPER_MODEL=small
+# Sentence Transformers (local embeddings for RAG)
+sentence-transformers>=3.0.0

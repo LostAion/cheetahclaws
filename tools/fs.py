@@ -4,6 +4,9 @@ from __future__ import annotations
 import difflib
 from pathlib import Path
 
+from core import state_manager
+from repo_context.skeleton import generate_skeleton
+
 
 def _read_preserving_newlines(p: Path) -> str:
     """Read a text file without newline translation.
@@ -41,19 +44,29 @@ def maybe_truncate_diff(diff_text: str, max_lines: int = 80) -> str:
 
 # ── Read ─────────────────────────────────────────────────────────────────
 
-def _read(file_path: str, limit: int = None, offset: int = None) -> str:
+def _read(file_path: str, limit: int = None, offset: int = None, skeleton: bool = True) -> str:
     p = Path(file_path)
     if not p.exists():
         return f"Error: file not found: {file_path}"
     if p.is_dir():
         return f"Error: {file_path} is a directory"
     try:
-        lines = _read_preserving_newlines(p).splitlines(keepends=True)
-        start = offset or 0
-        chunk = lines[start:start + limit] if limit else lines[start:]
-        if not chunk:
-            return "(empty file)"
-        return "".join(f"{start + i + 1:6}\t{l}" for i, l in enumerate(chunk))
+        abs_path = str(p.absolute())
+        state_manager.snapshot(abs_path)
+        source = _read_preserving_newlines(p)
+        if skeleton:
+            content = generate_skeleton(source, str(p))
+            # Optional: to prevent massive dumps even with skeleton, truncate if it exceeds safe bounds
+            if len(content) > 150000:
+                content = content[:150000] + "\n... [TRUNCATED] ..."
+            return content
+        else:
+            lines = source.splitlines(keepends=True)
+            start = offset or 0
+            chunk = lines[start:start + limit] if limit else lines[start:]
+            if not chunk:
+                return "(empty file)"
+            return "".join(f"{start + i + 1:6}\t{l}" for i, l in enumerate(chunk))
     except Exception as e:
         return f"Error: {e}"
 

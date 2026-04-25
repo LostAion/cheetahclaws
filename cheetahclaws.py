@@ -601,6 +601,9 @@ def repl(config: dict, initial_prompt: str = None):
     from cc_config import HISTORY_FILE
     from context import build_system_prompt
     from agent import AgentState, run, TextChunk, ThinkingChunk, ToolStart, ToolEnd, TurnDone, PermissionRequest
+    from repo_context.rag_cache import init_two_speed
+    
+    init_two_speed(os.getcwd())
 
     if HAS_PROMPT_TOOLKIT:
         # Inject live providers so ui.input's completer enumerates the same

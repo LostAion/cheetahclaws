@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.shell_guard import run_guarded_subprocess
+
 
 # ── Process tree kill ─────────────────────────────────────────────────────
 
@@ -42,20 +44,8 @@ def _bash(command: str, timeout: int = 30, cwd: str = None,
     )
     if sys.platform != "win32":
         kwargs["start_new_session"] = True
-    try:
-        proc = subprocess.Popen(command, **kwargs)
-        try:
-            stdout, stderr = proc.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            _kill_proc_tree(proc.pid)
-            proc.wait()
-            return f"Error: timed out after {timeout}s (process killed)"
-        out = stdout
-        if stderr:
-            out += ("\n" if out else "") + "[stderr]\n" + stderr
-        return out.strip() or "(no output)"
-    except Exception as e:
-        return f"Error: {e}"
+        
+    return run_guarded_subprocess(command, kwargs, timeout, _kill_proc_tree)
 
 
 # ── Grep ──────────────────────────────────────────────────────────────────

@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRD: Kevlar-Claws v2.0</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        h3 { color: #34495e; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        pre { background: #2d3436; color: #dfe6e9; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .phase-table { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <h1>PRD: Kevlar-Claws v2.0 (The "Adoption & DX" Protocol)</h1>
+    
+    <h2>1. Executive Summary</h2>
+    <p>Phase 1 established a "Zero-Trust" architectural baseline. Kevlar-Claws v2.0 evolves the tool from a "strict enforcer" to a "high-velocity, trusted co-pilot" by introducing token-efficient context modeling, interactive fallback mechanisms, and local RAG caching.</p>
+
+    <h2>2. Key Functional Requirements</h2>
+    <ul>
+        <li><strong>FR-01: Token-Optimized Context (Skeleton AST):</strong> Reduces context usage by 60%+ using hierarchical AST summaries.</li>
+        <li><strong>FR-02: Interactive Desync Resolution:</strong> Replaces hard aborts with an interactive CLI flow to resolve state conflicts.</li>
+        <li><strong>FR-03: Local RAG Vector Cache:</strong> Accelerates codebase retrieval using local embedding models (ChromaDB/FAISS).</li>
+        <li><strong>FR-04: Headless CI/CD Mode:</strong> Adds <code>--headless</code> support for automated environment integration.</li>
+    </ul>
+
+    <h2>3. Technical Architecture</h2>
+    <pre>
+cheetahclaws/
+├── cli/                    # Interactive UI (rich-based)
+├── context/                # Smart Memory & RAG
+├── core/                   # Orchestrator & State Manager
+└── tools/                  # AST/Shell/IO Handlers</pre>
+
+    <h2>4. Implementation Milestones</h2>
+    <table class="phase-table">
+        <tr><th>Phase</th><th>Deliverable</th></tr>
+        <tr><td>1</td><td>Terminal DX Overhaul (Rich, progress bars, interactive UI)</td></tr>
+        <tr><td>2</td><td>Skeleton AST Engine & ExpandNode tool</td></tr>
+        <tr><td>3</td><td>Local Vector RAG Integration</td></tr>
+        <tr><td>4</td><td>Headless CI/CD Automation</td></tr>
+    </table>
+</body>
+</html>

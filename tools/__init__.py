@@ -22,11 +22,14 @@ from typing import Callable, Optional
 from tools.security import _check_path_allowed, _is_safe_bash  # noqa: F401
 
 from tools.fs import (  # noqa: F401
-    _read, _write, _edit, _glob,
+    _read, _write, _glob,
     generate_unified_diff, maybe_truncate_diff,
 )
+from tools.edit import _ast_edit, _degraded_edit  # noqa: F401
+from tools.expand_node import expand_node  # noqa: F401
 
 from tools.shell import _bash, _grep, _kill_proc_tree, _has_rg  # noqa: F401
+from repo_context.rag_cache import rag_search  # noqa: F401
 
 from tools.web import _webfetch, _websearch  # noqa: F401
 
@@ -55,8 +58,8 @@ TOOL_SCHEMAS = [
     {
         "name": "Read",
         "description": (
-            "Read a file's contents. Returns content with line numbers "
-            "(format: 'N\\tline'). Use limit/offset to read large files in chunks."
+            "Read a file's contents. Returns an AST Skeleton summary by default to save tokens. "
+            "Use ExpandNode for details, or set skeleton=false to read raw chunked lines."
         ),
         "input_schema": {
             "type": "object",
@@ -64,8 +67,33 @@ TOOL_SCHEMAS = [
                 "file_path": {"type": "string", "description": "Absolute file path"},
                 "limit":     {"type": "integer", "description": "Max lines to read"},
                 "offset":    {"type": "integer", "description": "Start line (0-indexed)"},
+                "skeleton":  {"type": "boolean", "description": "Return AST summary (default: true)"},
             },
             "required": ["file_path"],
+        },
+    },
+    {
+        "name": "ExpandNode",
+        "description": "Expand a collapsed node (e.g. MyClass.my_function) inside a skeleton summary to its full source code.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string"},
+                "node_name": {"type": "string", "description": "Name of the node to expand"},
+            },
+            "required": ["file_path", "node_name"],
+        },
+    },
+    {
+        "name": "RAGSearch",
+        "description": "Perform a semantic search across the codebase using the local ChromaDB RAG cache.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Semantic query representing the problem or keyword"},
+                "n_results": {"type": "integer", "description": "Number of results to retrieve (default: 5)"},
+            },
+            "required": ["query"],
         },
     },
     {
@@ -83,18 +111,21 @@ TOOL_SCHEMAS = [
     {
         "name": "Edit",
         "description": (
-            "Replace exact text in a file. old_string must match exactly (including whitespace). "
-            "If old_string appears multiple times, use replace_all=true or add more context."
+            "Surgical AST-based or Degraded Git Patch editor. "
+            "For Python files, provide target_type ('function' or 'class'), target_name, and new_source. "
+            "For non-Python files, provide unified_diff (a valid git diff patch string). "
+            "Banned: string replacements are no longer allowed."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "file_path":   {"type": "string"},
-                "old_string":  {"type": "string", "description": "Exact text to replace"},
-                "new_string":  {"type": "string", "description": "Replacement text"},
-                "replace_all": {"type": "boolean", "description": "Replace all occurrences"},
+                "file_path":    {"type": "string"},
+                "target_type":  {"type": "string", "description": "Python only: 'function' or 'class'"},
+                "target_name":  {"type": "string", "description": "Python only: name to replace"},
+                "new_source":   {"type": "string", "description": "Python only: replacement source code"},
+                "unified_diff": {"type": "string", "description": "Non-Python only: exact unified diff patch"},
             },
-            "required": ["file_path", "old_string", "new_string"],
+            "required": ["file_path"],
         },
     },
     {
@@ -490,6 +521,21 @@ def _register_builtins() -> None:
             read_only=True, concurrent_safe=True,
         ),
         ToolDef(
+            name="ExpandNode",
+            schema=_schemas["ExpandNode"],
+            func=lambda p, c: (
+                "Error: missing file_path" if not p.get("file_path")
+                else _check_path_allowed(p["file_path"], c) or expand_node(p, c)
+            ),
+            read_only=True, concurrent_safe=True,
+        ),
+        ToolDef(
+            name="RAGSearch",
+            schema=_schemas["RAGSearch"],
+            func=lambda p, c: rag_search(p, c),
+            read_only=True, concurrent_safe=True,
+        ),
+        ToolDef(
             name="Write",
             schema=_schemas["Write"],
             func=lambda p, c: (
@@ -503,7 +549,9 @@ def _register_builtins() -> None:
             schema=_schemas["Edit"],
             func=lambda p, c: (
                 "Error: missing required parameter 'file_path'" if not p.get("file_path")
-                else _check_path_allowed(p["file_path"], c) or _edit(**p)
+                else _check_path_allowed(p["file_path"], c) or (
+                    _ast_edit(p, c) if p.get("target_type") else _degraded_edit(p, c)
+                )
             ),
             read_only=False, concurrent_safe=False,
         ),
